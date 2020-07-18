@@ -1,3 +1,5 @@
+:construction_worker: **!!WARNING!!** **This code is under development and is not ready for production use. You can use it own on your risk. I will appreciate on any help.**
+
 # OTRS-DynamicFieldTextArray
 OTRS package that adds a text array type of dynamic fields
 
