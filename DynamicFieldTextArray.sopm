@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<otrs_package version="1.0">
+    <Name>CacheRedis</Name>
+    <Version>6.0.0</Version>
+    <Vendor>Yuri Myasoedov</Vendor>
+    <URL>https://github.com/ymyasoedov/OTRS-DynamicFieldTextArray</URL>
+    <Framework Minimum="6.0.0">6.0.x</Framework>
+    <License>GNU GENERAL PUBLIC LICENSE Version 3, 29 June 2007</License>
+    <Description Lang="en">Dynamic field type for text arrays.</Description>
+    <Description Lang="ru">Тип динамического поля для текстовых массивов.</Description>
+    <Filelist>
+        <File Permission="660" Location="Kernel/Config/XML/Files/DynamicFieldTextArray.xml" />
+        <File Permission="660" Location="Kernel/Output/HTML/Templates/Standard/AdminDynamicFieldTextArray.tt" />
+        <File Permission="660" Location="Kernel/Modules/AdminDynamicFieldTextArray.pm" />
+        <File Permission="660" Location="Kernel/System/DynamicField/Driver/BaseTextArray.pm" />
+        <File Permission="660" Location="Kernel/System/DynamicField/Driver/TextArray.pm" />
+        <File Permission="660" Location="Kernel/System/DynamicField/Driver/BaseArray.pm" />
+    </Filelist>
+</otrs_package>
