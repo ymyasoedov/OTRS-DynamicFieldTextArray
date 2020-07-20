@@ -12,6 +12,8 @@ package Kernel::System::DynamicField::Driver::BaseArray;
 use strict;
 use warnings;
 
+use parent qw(Kernel::System::DynamicField::Driver::Base);
+
 use Kernel::System::VariableCheck qw(:all);
 
 our @ObjectDependencies = (
@@ -34,44 +36,24 @@ sub ValueIsDifferent {
     return if !defined $Param{Value1} && ( defined $Param{Value2} && $Param{Value2} eq '' );
     return if !defined $Param{Value2} && ( defined $Param{Value1} && $Param{Value1} eq '' );
 
+    # this method can check ordered and unordered arrays,
+    # for unordered arrays we have to sort them before checking
+    if ( ref $Param{Value1} eq 'ARRAY' && ref $Param{Value2} eq 'ARRAY' ) {
+        if ( !$Self->{Ordered} ) {
+            my @Value1 = sort @{ $Param{Value1} };
+            my @Value2 = sort @{ $Param{Value2} };
+            return DataIsDifferent(
+                Data1 => \@Value1,
+                Data2 => \@Value2,
+            );
+        }
+    }
+
     # compare the results
     return DataIsDifferent(
         Data1 => \$Param{Value1},
         Data2 => \$Param{Value2}
     );
-}
-
-sub ValueDelete {
-    my ( $Self, %Param ) = @_;
-
-    my $Success = $Kernel::OM->Get('Kernel::System::DynamicFieldValue')->ValueDelete(
-        FieldID  => $Param{DynamicFieldConfig}->{ID},
-        ObjectID => $Param{ObjectID},
-        UserID   => $Param{UserID},
-    );
-
-    return $Success;
-}
-
-sub AllValuesDelete {
-    my ( $Self, %Param ) = @_;
-
-    my $Success = $Kernel::OM->Get('Kernel::System::DynamicFieldValue')->AllValuesDelete(
-        FieldID => $Param{DynamicFieldConfig}->{ID},
-        UserID  => $Param{UserID},
-    );
-
-    return $Success;
-}
-
-sub HasBehavior {
-    my ( $Self, %Param ) = @_;
-
-    # return fail if Behaviors hash does not exists
-    return if !IsHashRefWithData( $Self->{Behaviors} );
-
-    # return success if the dynamic field has the expected behavior
-    return IsPositiveInteger( $Self->{Behaviors}->{ $Param{Behavior} } );
 }
 
 sub SearchFieldPreferences {
@@ -85,96 +67,6 @@ sub SearchFieldPreferences {
     );
 
     return \@Preferences;
-}
-
-=head2 EditLabelRender()
-
-creates the label HTML to be used in edit masks.
-
-    my $LabelHTML = $BackendObject->EditLabelRender(
-        DynamicFieldConfig => $DynamicFieldConfig,      # complete config of the DynamicField
-        FieldName          => 'TheField',               # the value to be set on the 'for' attribute
-        AdditionalText     => 'Between'                 # other text to be placed next to FieldName
-        Mandatory          => 1,                        # 0 or 1,
-    );
-
-=cut
-
-sub EditLabelRender {
-    my ( $Self, %Param ) = @_;
-
-    # check needed stuff
-    for my $Needed (qw(DynamicFieldConfig FieldName)) {
-        if ( !$Param{$Needed} ) {
-            $Kernel::OM->Get('Kernel::System::Log')->Log(
-                Priority => 'error',
-                Message  => "Need $Needed!"
-            );
-            return;
-        }
-    }
-
-    # check DynamicFieldConfig (general)
-    if ( !IsHashRefWithData( $Param{DynamicFieldConfig} ) ) {
-        $Kernel::OM->Get('Kernel::System::Log')->Log(
-            Priority => 'error',
-            Message  => "The field configuration is invalid",
-        );
-        return;
-    }
-
-    # check DynamicFieldConfig (internally)
-    for my $Needed (qw(Label)) {
-        if ( !$Param{DynamicFieldConfig}->{$Needed} ) {
-            $Kernel::OM->Get('Kernel::System::Log')->Log(
-                Priority => 'error',
-                Message  => "Need $Needed in DynamicFieldConfig!"
-            );
-            return;
-        }
-    }
-
-    my $Name      = $Param{FieldName};
-    my $LabelText = $Param{DynamicFieldConfig}->{Label};
-
-    my $LabelID    = 'Label' . $Param{FieldName};
-    my $HTMLString = '';
-
-    if ( $Param{Mandatory} ) {
-
-        # opening tag
-        $HTMLString = <<"EOF";
-<label id="$LabelID" for="$Name" class="Mandatory">
-    <span class="Marker">*</span>
-EOF
-    }
-    else {
-
-        # opening tag
-        $HTMLString = <<"EOF";
-<label id="$LabelID" for="$Name">
-EOF
-    }
-
-    # text
-    $HTMLString .= $Param{LayoutObject}->Ascii2Html(
-        Text => $Param{LayoutObject}->{LanguageObject}->Translate("$LabelText")
-    );
-    if ( $Param{AdditionalText} ) {
-        $HTMLString .= " (";
-        $HTMLString .= $Param{LayoutObject}->Ascii2Html(
-            Text => $Param{LayoutObject}->{LanguageObject}->Translate("$Param{AdditionalText}")
-        );
-        $HTMLString .= ")";
-    }
-    $HTMLString .= ":\n";
-
-    # closing tag
-    $HTMLString .= <<"EOF";
-</label>
-EOF
-
-    return $HTMLString;
 }
 
 =head2 ValueSearch()
@@ -212,11 +104,13 @@ sub ValueSearch {
     }
 
     my $SearchTerm = $Param{Search};
-    my $Operator   = 'Equals';
+    my $Operator   = 'Contains';
+=for
     if ( $Self->HasBehavior( Behavior => 'IsLikeOperatorCapable' ) ) {
         $SearchTerm = '%' . $Param{Search} . '%';
         $Operator   = 'Like';
     }
+=cut
 
     my $SearchSQL = $Self->SearchSQLGet(
         DynamicFieldConfig => $Param{DynamicFieldConfig},
